@@ -3,6 +3,7 @@
 
 #pragma once
 
-#include <iostream>
+#include <string>
+#include <vector>
 
-// TODO: Reference additional headers your program requires here.
+std::vector<std::wstring> get_cur_proc_handle_paths();
