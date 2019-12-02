@@ -23,3 +23,6 @@ endif()
 # Include sub-projects.
 add_subdirectory ("win_handle_getter")
 add_subdirectory ("examples")
+
+enable_testing ()
+add_subdirectory ("tests")
