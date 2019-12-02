@@ -17,6 +17,12 @@ static std::wstring handle_to_path(HANDLE hdl)
     // GetFinalPathNameByHandleW because the latter can hang indefinitely in
     // some cases.
 
+    DWORD ftype = GetFileType(hdl);
+    // Named pipes may sometimes hang
+    if (ftype == 3) {
+        return L"PIPE "
+               + std::to_wstring(reinterpret_cast<std::uintptr_t>(hdl));
+    }
     // Attempt to get info about the handle--note that we expect this to fail.
     // Unless the path is empty, there isn't enough space for the file name in
     // the struct.
