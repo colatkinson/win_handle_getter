@@ -7,32 +7,61 @@
 
 #include <ProcessSnapshot.h>
 
-#include <cassert>
+#include <memory>
 #include <string>
 #include <vector>
 
 static std::wstring handle_to_path(HANDLE hdl)
 {
-    // Get the length of the path--these days, MAX_PATH isn't a reliable
-    // assumption Note that this includes the terminating NUL
-    DWORD handle_name_len
-        = GetFinalPathNameByHandleW(hdl, nullptr, 0, VOLUME_NAME_DOS);
+    // IMPORTANT: We use GetFileInformationByHandleEx instead of
+    // GetFinalPathNameByHandleW because the latter can hang indefinitely in
+    // some cases.
 
-    if (handle_name_len == 0) {
+    // Attempt to get info about the handle--note that we expect this to fail.
+    // Unless the path is empty, there isn't enough space for the file name in
+    // the struct.
+    FILE_NAME_INFO info { 0 };
+    auto first_attempt_info_res
+        = GetFileInformationByHandleEx(hdl, FileNameInfo, &info, sizeof(info));
+    if (first_attempt_info_res) {
+        // This seems to occur sometimes when running the tests via the VS test
+        // runner. No idea what the handle really is, but it seems to make sense
+        // to handle it as an edge case regardless.
+        return std::wstring(
+            info.FileName, info.FileNameLength / sizeof(wchar_t));
+    }
+
+    // Some other errors, like permission issues, can occur. Only
+    // ERROR_MORE_DATA indicates that our initial attempt failed due to lack of
+    // space in the struct.
+    auto first_attempt_err = GetLastError();
+    if (first_attempt_err != ERROR_MORE_DATA) {
         return L"UNKNOWN";
     }
 
-    // Actually retrieve the path
-    std::wstring path(handle_name_len - 1, '\0');
-    DWORD handle_name_out_chars = GetFinalPathNameByHandleW(
-        hdl, path.data(), static_cast<DWORD>(path.size()) + 1, VOLUME_NAME_DOS);
+    size_t buf_sz = sizeof(FILE_NAME_INFO) + info.FileNameLength;
 
-    // A weird bit of this API is that if the call succeeds, the length it
-    // returns doesn't include the NUL. If it doesn't succeed, the reverse is
-    // true. Thus, the -1.
-    assert(handle_name_out_chars == handle_name_len - 1);
+    // Allocate a new buffer to actually put the filename in.
+    // Note the extra byte allocated for NUL-termination, even though
+    // technically we don't need it.
+    auto file_info_buf_uniq = std::make_unique<char[]>(buf_sz + 1);
+    memset(file_info_buf_uniq.get(), 0, buf_sz + 1);
 
-    return path;
+    // Pretend that the buffer is just a massive FILE_NAME_INFO.
+    auto file_info_buf
+        = reinterpret_cast<FILE_NAME_INFO *>(file_info_buf_uniq.get());
+
+    auto real_info_res = GetFileInformationByHandleEx(
+        hdl, FileNameInfo, file_info_buf, (DWORD)buf_sz);
+
+    if (!real_info_res) {
+        return L"ERROR " + std::to_wstring(GetLastError());
+    }
+
+    // Note that FileNameLength is in bytes, but std::wstring cares about
+    // characters.
+    return std::wstring(file_info_buf->FileName,
+        file_info_buf->FileNameLength / sizeof(wchar_t));
 }
 
 std::vector<std::wstring> get_cur_proc_handle_paths()
