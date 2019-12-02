@@ -1,5 +1,3 @@
-#include <algorithm>
-#include <cassert>
 #include <fstream>
 #include <iostream>
 
@@ -20,21 +18,27 @@ inline bool ends_with(
 
 int main()
 {
+    // Note that this should also work with SMB shares! Try it via e.g.
+    // constexpr wchar_t fname[] = L"\\\\localhost\\C$\\Users\\colin\\file.txt";
     constexpr wchar_t fname[] = L"file.txt";
     const auto initial_paths = get_cur_proc_handle_paths();
 
-    // Check that file.txt doesn't show up as open
-    assert(!std::any_of(initial_paths.cbegin(), initial_paths.cend(),
-        [&fname](const auto &path) { return ends_with(path, fname); }));
+    // file.txt shouldn't show up as open
+    std::wcout << L"BEFORE OPENING FILE" << std::endl;
+    for (const auto &path : initial_paths) {
+        std::wcout << path << std::endl;
+    }
 
     // Open a file so we can see its handle in the list
     std::ofstream st(fname);
 
     const auto final_paths = get_cur_proc_handle_paths();
 
-    // Check that file.txt now shows up as open
-    assert(std::any_of(final_paths.cbegin(), final_paths.cend(),
-        [&fname](const auto &path) { return ends_with(path, fname); }));
+    // file.txt should now show up as open
+    std::wcout << L"AFTER OPENING FILE" << std::endl;
+    for (const auto &path : final_paths) {
+        std::wcout << path << std::endl;
+    }
 
     return 0;
 }
