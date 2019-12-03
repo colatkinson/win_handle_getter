@@ -9,7 +9,22 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+template <typename F> class at_exit {
+    F _closure;
+
+public:
+    explicit at_exit(F closure)
+        : _closure(closure)
+    {
+        static_assert(std::is_nothrow_invocable<F>::value,
+            "at_exit functions must be noexcept");
+    }
+
+    ~at_exit() noexcept { _closure(); }
+};
 
 static std::wstring handle_to_path(HANDLE hdl)
 {
@@ -81,6 +96,9 @@ std::vector<std::wstring> get_cur_proc_handle_paths()
     HPSS snap { 0 };
     DWORD snap_res
         = PssCaptureSnapshot(cur_proc, PSS_CAPTURE_HANDLES, 0, &snap);
+    at_exit clean_up_snap(
+        [&snap]() noexcept { PssFreeSnapshot(GetCurrentProcess(), snap); });
+
     if (snap_res != ERROR_SUCCESS) {
         throw std::runtime_error(
             "Unexpected exception while capturing process snapshot: "
@@ -90,6 +108,9 @@ std::vector<std::wstring> get_cur_proc_handle_paths()
     // Walk marker is like an iterator for traversing the snapshot data
     HPSSWALK walk_marker { 0 };
     DWORD walk_marker_create_res = PssWalkMarkerCreate(nullptr, &walk_marker);
+    at_exit clean_up_walk_marker(
+        [&walk_marker]() noexcept { PssWalkMarkerFree(walk_marker); });
+
     if (walk_marker_create_res != ERROR_SUCCESS) {
         throw std::runtime_error(
             "Unexpected exception while iterating process snapshot: "
