@@ -1,14 +1,24 @@
+strategy:
+  matrix:
+    vs2017:
+      imageName: 'vs2017-win2016'
+      generator: 'Visual Studio 15 2017 Win64'
+    vs2019:
+      imageName: 'windows-2019'
+      generator: 'Visual Studio 16 2019'
+
+
 variables:
   BuildType: Debug
 
 pool:
-  vmImage: 'vs2017-win2016'
+  vmImage: $(imageName)
 
 steps:
 - task: CMake@1
   displayName: 'Configure'
   inputs:
-    cmakeArgs: '.. -G"Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=$(BuildType)'
+    cmakeArgs: '.. -G "$(generator)" -DCMAKE_BUILD_TYPE=$(BuildType)'
 - task: MSBuild@1
   displayName: 'Build'
   inputs:
