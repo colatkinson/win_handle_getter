@@ -24,8 +24,14 @@ steps:
   inputs:
     cmakeArgs: '--build . --config $(BuildType)'
 - script: |
-        ctest --output-on-failure -C $(BuildType) --timeout 30
+        ctest --output-on-failure -C $(BuildType) --timeout 30 -T test
 
   workingDirectory: build
-  failOnStderr: true
+  continueOnError: true
   displayName: 'Test'
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results'
+  inputs:
+    testResultsFormat: 'cTest'
+    testResultsFiles: 'build/Testing/**/Test.xml'
+    failTaskOnFailedTests: true
