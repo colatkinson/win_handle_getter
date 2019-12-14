@@ -18,12 +18,11 @@ steps:
 - task: CMake@1
   displayName: 'Configure'
   inputs:
-    cmakeArgs: '.. -G "$(generator)" -DCMAKE_BUILD_TYPE=$(BuildType)'
-- task: MSBuild@1
+    cmakeArgs: '.. -G "$(generator)"'
+- task: CMake@1
   displayName: 'Build'
   inputs:
-    solution: build/win_handle_getter.sln
-    msbuildArguments: '/m /p:Configuration=$(BuildType)'
+    cmakeArgs: '--build . --config $(BuildType)'
 - script: |
         ctest --output-on-failure -C $(BuildType) --timeout 30
 
