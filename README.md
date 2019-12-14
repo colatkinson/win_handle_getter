@@ -1,5 +1,8 @@
 # win\_handle\_getter
 
+[![Azure Pipelines builds](https://img.shields.io/azure-devops/build/colinwilliamatkinson/53ebeb2d-44f5-4717-876b-b31fa2d32f89/2?logo=azure-pipelines&style=flat-square)](https://dev.azure.com/colinwilliamatkinson/win_handle_getter/_build)
+![License badge](https://img.shields.io/github/license/colatkinson/win_handle_getter?style=flat-square)
+
 A simple example of how to use the win32 `ProcessSnapshot` APIs to get a list
 of open file handles in the current process.
 
