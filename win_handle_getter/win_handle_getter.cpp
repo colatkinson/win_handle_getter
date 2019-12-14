@@ -91,8 +91,8 @@ std::vector<std::wstring> get_cur_proc_handle_paths()
 
     // Get a snapshot of the process's handles
     HPSS snap { 0 };
-    DWORD snap_res
-        = PssCaptureSnapshot(cur_proc, PSS_CAPTURE_HANDLES, 0, &snap);
+    DWORD snap_res = PssCaptureSnapshot(cur_proc,
+        PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_NAME_INFORMATION, 0, &snap);
     at_exit clean_up_snap(
         [&snap]() noexcept { PssFreeSnapshot(GetCurrentProcess(), snap); });
 
